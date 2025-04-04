@@ -26,6 +26,7 @@ def residuals(p, func, x, y, s=1) -> np.ndarray:
     See Also
     --------
     residuals_data : Find the residuals between observed data and a model. 
+    
     """
     return (y - func(p, x)) / s
 
@@ -58,6 +59,7 @@ def fitting(p, x, y, func, s=1):
     See Also
     --------
     fitting_params_only : Fit data to a function and only return the parameters.
+    
     """
     # Fit the data and find the uncertainties
     r = opt.least_squares(residuals, p, args=(func, x, y, s))
@@ -101,6 +103,7 @@ def fitting_params_only(p, x, y, func, s=1):
     See Also
     --------
     fitting : Fit data to a function and returns the chi squared value as well as the uncertainty in the fitted parameters.
+    
     """
     # Fit the data and find the uncertainties
     r = opt.least_squares(residuals, p, args=(func, x, y, s))
@@ -129,6 +132,7 @@ def round_sig_fig_uncertainty(value, uncertainty):
     See Also
     --------
     round_sig_fig : Round to a given number of significant figures.
+    
     """
     # check if numpy array/list or float/int
     if isinstance(value, np.ndarray) or isinstance(value, list):
@@ -185,6 +189,7 @@ def find_nearest_index(value, array):
     -------
     index : int
         The index of the closest value in the array to value.
+        
     """
     index = np.searchsorted(array, value, side="left")
     return index
@@ -210,6 +215,7 @@ def residuals_data(observed, expected, s=1) -> np.ndarray:
     See Also
     --------
     residuals : Find the residuals from fitting data to a function.
+    
     """
     return (observed - expected) / s
 
@@ -230,6 +236,7 @@ def chi2(observed, expected, s=1) -> float:
     -------
     float
         The chi squared value for the dataset.
+        
     """
     return np.sum(residuals_data(observed, expected, s)**2 ) 
 
@@ -248,6 +255,7 @@ def search_store(file: np.lib.npyio.NpzFile, string: str) -> np.ndarray:
     -------
     arr : numpy array
         The files containing the string.
+        
     """
     lst = []
     for i in file:
@@ -275,7 +283,9 @@ def round_sig_fig(value, n: int) -> float:
     See Also
     --------
     round_sig_fig_uncertainty : Round to the first significant figure of the uncertainty.
+        
     """
+    out = np.empty_like(value)
     # Check if float/int or array/list
     if isinstance(value, float) or isinstance(value, int):
         # Turn the value into a string in scientific notation
@@ -288,15 +298,21 @@ def round_sig_fig(value, n: int) -> float:
         out = np.round(value, -(expo - n + 1))
         return out
     elif isinstance(value, np.ndarray) or isinstance(value, list):
-        out = np.array([])
-        for i in range(len(value)):
-            # Turn the value into a string in scientific notation
-            val_str = np.format_float_scientific(value[i], n)
+        value = np.asarray(value)
+        if len(value.shape) != 1:
+            for i in range(len(value)):
+                out[i] = round_sig_fig(value[i], n)
+        else:
+            out_local = np.empty_like(value)
+            for i in range(len(value)):
+                # Turn the value into a string in scientific notation
+                val_str = np.format_float_scientific(value[i], n)
 
-            # Split this into the base and exponent of 10, drop the base
-            expo = int(val_str.split('e')[1])
+                # Split this into the base and exponent of 10, drop the base
+                expo = int(val_str.split('e')[1])
 
-            # Round the value to this number of decimal places
-            out_val = np.round(value[i], -(expo - n + 1))
-            out = np.append(out, out_val)
+                # Round the value to this number of decimal places
+                out_val = np.round(value[i], -(expo - n + 1))
+                out_local[i] = out_val
+            return out_local
         return out
